@@ -1,27 +1,42 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from psycopg2 import pool
+from app.core.config import settings
+import contextlib
 from dotenv import load_dotenv
 
-load_dotenv()
+connection_pool = None
 
-TURSO_DATABASE_URL = os.getenv("TURSO_DATABASE_URL")
-TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
-
-def get_db_url():
-    return f"sqlite+{TURSO_DATABASE_URL}/?authToken={TURSO_AUTH_TOKEN}&secure=true"
-
-engine = create_engine(
-    get_db_url(),
-    connect_args={'check_same_thread': False},
-    echo=True
+def init_connection_pool():
+    global connection_pool
+    try:
+        connection_pool = pool.SimpleConnectionPool(
+            **settings.database_config
+        )
+        print("✅Database pool initialized successfully✅")
+    except Exception as e:
+        print(f"Error creating connection pool: {e}")
+        raise
+# Create connection pool
+connection_pool = pool.SimpleConnectionPool(
+    **settings.database_config
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def get_db():
-    db = SessionLocal()
+@contextlib.contextmanager
+def get_db_connection():
+    """Get a database connection from the pool"""
+    if connection_pool is None:
+        init_connection_pool()
+    conn = connection_pool.getconn()
     try:
-        yield db
+        yield conn
     finally:
-        db.close()
+        connection_pool.putconn(conn)
+
+def close_all_db_connections():
+    """Close all connections in the pool"""
+    if connection_pool:
+        print("🚫Closing all database connections in the pool🚫")
+        connection_pool.closeall()
+
+import atexit
+atexit.register(close_all_db_connections)

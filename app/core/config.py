@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 load_dotenv()
+
 class Settings(BaseSettings):
     # Project info
     PROJECT_NAME: str = "Job Embedding & Matching System"
@@ -20,12 +21,8 @@ class Settings(BaseSettings):
     
     # Database Configuration
     DATABASE_URL: str = os.getenv("DATABASE_URL")
-    DATABASE_POOL_SIZE: int = int(os.getenv("DATABASE_POOL_SIZE", "5"))
-    DATABASE_MAX_OVERFLOW: int = int(os.getenv("DATABASE_MAX_OVERFLOW", "10"))
-    
-    # Turso Configuration
-    TURSO_DATABASE_URL: str = os.getenv("TURSO_DATABASE_URL")
-    TURSO_AUTH_TOKEN: str = os.getenv("TURSO_AUTH_TOKEN")
+    DATABASE_MIN_CONNECTIONS: int = int(os.getenv("DATABASE_MIN_CONNECTIONS", "1"))
+    DATABASE_MAX_CONNECTIONS: int = int(os.getenv("DATABASE_MAX_CONNECTIONS", "10"))
     
     # Pinecone Configuration
     PINECONE_API_KEY: str = os.getenv("PINECONE_API_KEY")
@@ -62,12 +59,31 @@ class Settings(BaseSettings):
     @property
     def redis_config(self) -> dict:
         """Return Redis configuration as a dictionary"""
+        # Remove https:// and use clean hostname
+        host = self.UPSTASH_REDIS_URL.replace('https://', '')
         return {
-            "host": self.UPSTASH_REDIS_URL,
+            "host": host,
             "password": self.UPSTASH_REDIS_TOKEN,
             "port": self.UPSTASH_REDIS_PORT,
             "ssl": self.REDIS_USE_SSL,
             "decode_responses": True
+        }
+
+    @property
+    def celery_broker_url(self) -> str:
+        """Return Redis URL formatted for Celery broker/backend"""
+        # Remove https:// and use clean hostname
+        host = self.UPSTASH_REDIS_URL.replace('https://', '')
+        # Format for Celery with SSL: rediss://:<password>@<host>:<port>
+        return f"rediss://:{self.UPSTASH_REDIS_TOKEN}@{host}"
+
+    @property
+    def database_config(self) -> dict:
+        """Return database configuration as a dictionary"""
+        return {
+            "dsn": self.DATABASE_URL,
+            "minconn": self.DATABASE_MIN_CONNECTIONS,
+            "maxconn": self.DATABASE_MAX_CONNECTIONS
         }
 
 @lru_cache()
@@ -93,8 +109,6 @@ def verify_environment():
         ("UPSTASH_REDIS_URL", settings.UPSTASH_REDIS_URL),
         ("UPSTASH_REDIS_TOKEN", settings.UPSTASH_REDIS_TOKEN),
         ("DATABASE_URL", settings.DATABASE_URL),
-        ("TURSO_DATABASE_URL", settings.TURSO_DATABASE_URL),
-        ("TURSO_AUTH_TOKEN", settings.TURSO_AUTH_TOKEN),
         ("PINECONE_API_KEY", settings.PINECONE_API_KEY),
     ]
     
