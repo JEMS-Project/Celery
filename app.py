@@ -43,9 +43,12 @@ class Job(Base):
     def __repr__(self):
         return f"Job(id={self.id!r}, title={self.title!r}, company={self.company!r})"
 
-TURSO_DATABASE_URL = os.getenv("TURSO_DATABASE_URL", "libsql://jems-main-turso12686.aws-eu-west-1.turso.io")
-TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN", "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NDM2NTkwNjYsImlkIjoiNDhjOTExNTktN2U0My00OGQxLTgyNzEtNjMwMDU0ZWRkODNlIiwicmlkIjoiYWY4MzNjYmItNTkwYy00MDFmLTg2YmQtMDkwMzUyZTJhNjNlIn0.XK6rtLBoYwgG_v0dgcEzuZsbRG6gsmJN_Yg5jRi9byZdalpNY6HGECCsPSWgosglyDwaVPuWrFnGjyXrjwJEBw")
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "pcsk_6aDtjC_4rYreRVVXzMabLfPX8uqjDCYJwxx48DeGbrQbPd48ynJ3kwfx4qMj2Rk9rXadTZ")
+TURSO_DATABASE_URL = os.getenv("TURSO_DATABASE_URL")
+TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+
+if not all([TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, PINECONE_API_KEY]):
+    raise ValueError("Missing required environment variables")
 
 db_url = f"sqlite+{TURSO_DATABASE_URL}/?authToken={TURSO_AUTH_TOKEN}&secure=true"
 print(f"Database URL: {db_url}")

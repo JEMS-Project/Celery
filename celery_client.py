@@ -15,17 +15,18 @@ import redis
 import json
 import ssl
 import certifi
+from dotenv import load_dotenv
+import os
 
-# Upstash Redis connection URL
-UPSTASH_REDIS_URL = "rediss://:AYkSAAIjcDExMTliZjEzNzE4YTc0MzYzOWU2NTkzMmYwNjhmNzRhNXAxMA@leading-maggot-35090.upstash.io:6379"
+load_dotenv()
 
-# Configure Celery
+# Configure Celery using environment variables
 app = Celery('celery_client',
-             broker=UPSTASH_REDIS_URL,
-             backend=UPSTASH_REDIS_URL,
+             broker=os.getenv('UPSTASH_REDIS_URL'),
+             backend=os.getenv('UPSTASH_REDIS_URL'),
              broker_connection_retry_on_startup=True)
 
-# Explicitly configure SSL for broker and backend
+# SSL Configuration
 app.conf.update(
     broker_use_ssl={
         'ssl_cert_reqs': ssl.CERT_REQUIRED,
@@ -35,18 +36,14 @@ app.conf.update(
         'ssl_cert_reqs': ssl.CERT_REQUIRED,
         'ssl_ca_certs': certifi.where(),
     },
-    redis_broker_use_ssl={
-        'ssl_cert_reqs': ssl.CERT_REQUIRED,
-        'ssl_ca_certs': certifi.where(),
-    },
-    task_default_queue='celery',
+    task_default_queue=os.getenv('CELERY_TASK_QUEUE', 'celery'),
 )
 
-# Connect to Upstash Redis
+# Redis client configuration from environment
 redis_client = redis.Redis(
-    host='leading-maggot-35090.upstash.io',
-    port=6379,
-    password='AYkSAAIjcDExMTliZjEzNzE4YTc0MzYzOWU2NTkzMmYwNjhmNzRhNXAxMA',
+    host=os.getenv('UPSTASH_REDIS_HOST'),
+    port=int(os.getenv('UPSTASH_REDIS_PORT', 6379)),
+    password=os.getenv('UPSTASH_REDIS_PASSWORD'),
     ssl=True,
     decode_responses=True
 )

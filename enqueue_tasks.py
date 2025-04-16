@@ -1,12 +1,16 @@
 import redis
 import json
 from datetime import datetime
+from dotenv import load_dotenv
+import os
 
-# Connect to Upstash Redis
+load_dotenv()
+
+# Connect to Upstash Redis using environment variables
 redis_client = redis.Redis(
-    host='leading-maggot-35090.upstash.io',
-    port=6379,
-    password='AYkSAAIjcDExMTliZjEzNzE4YTc0MzYzOWU2NTkzMmYwNjhmNzRhNXAxMA',
+    host=os.getenv('UPSTASH_REDIS_HOST'),
+    port=int(os.getenv('UPSTASH_REDIS_PORT', 6379)),
+    password=os.getenv('UPSTASH_REDIS_PASSWORD'),
     ssl=True,
     decode_responses=True  # Add this to get strings instead of bytes
 )
