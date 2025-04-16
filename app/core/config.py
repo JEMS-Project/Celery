@@ -5,17 +5,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Find and load .env file from project root
-project_root = Path(__file__).parent.parent.parent
-env_file = project_root / ".env"
-
-if not env_file.exists():
-    print(f"Warning: .env file not found at {env_file}")
-    print("Make sure you're running the script from the correct directory")
-    print("Current working directory:", os.getcwd())
-    
-load_dotenv(env_file, override=True)
-
+load_dotenv()
 class Settings(BaseSettings):
     # Project info
     PROJECT_NAME: str = "Job Embedding & Matching System"

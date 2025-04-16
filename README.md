@@ -1,15 +1,20 @@
-# Celery Job Scraper
+# Job Search Backend
 
-## Local Setup
+A FastAPI and Celery-based job search backend with embedding-based semantic search.
+
+## Setup
 1. Install dependencies: `pip install -r requirements.txt`
-2. Copy `.env.example` to `.env` and fill in credentials.
-3. Start worker: `celery -A src.main.celery_app worker --loglevel=info --pool=solo`
-4. Enqueue tasks: `python tests/enqueue_tasks.py`
+2. Copy `.env.example` to `.env` and fill in credentials
+3. Initialize database: `python scripts/init_db.py`
+4. Start Celery worker: `celery -A celery_tasks.worker worker --loglevel=info`
+5. Run API server: `uvicorn main:app --reload`
 
-## Docker
-1. Build: `docker build -t celery-job-scraper .`
-2. Run: `docker run --env-file .env celery-job-scraper`
+## Testing
+Run tests with: `pytest tests/`
 
-## HF Spaces
-1. Push to HF repo.
-2. Set Repository Secrets for .env vars.
+## Architecture
+- FastAPI for REST API
+- Celery for async job processing
+- SQLAlchemy + Turso for storage
+- Pinecone for vector search
+- Redis for task queue
