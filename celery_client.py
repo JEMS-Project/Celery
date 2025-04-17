@@ -9,11 +9,8 @@ result = process_task.delay(task_data)
 '''
 
 from celery import Celery
-import ssl
-import certifi
 from app.core.config import settings
 
-# Configure Celery with the properly formatted Redis URL
 app = Celery('celery_client')
 
 # Set configuration
