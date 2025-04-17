@@ -1,15 +1,14 @@
 from celery import Celery
-import redis
-import json
 import ssl
 import certifi
 from app.core.config import settings
+from app.db.connection import init_connection_pool
+from celery.signals import worker_ready
 
 # Configure Celery
 app = Celery('celery_worker',
-             broker=settings.UPSTASH_REDIS_URL,
-             backend=settings.UPSTASH_REDIS_URL,
-             broker_connection_retry_on_startup=True)
+             broker=settings.celery_broker_url,
+             backend=settings.celery_result_backend_url)
 
 # SSL Configuration
 app.conf.update(
@@ -21,14 +20,25 @@ app.conf.update(
         'ssl_cert_reqs': ssl.CERT_REQUIRED,
         'ssl_ca_certs': certifi.where(),
     },
-    task_default_queue=settings.REDIS_TASKS_QUEUE
+    task_serializer='json',
+    result_serializer='json',
+    accept_content=['json'],
+    task_track_started=True,
+    task_ignore_result=False,
+    result_expires=3600,
+    task_default_queue=settings.REDIS_TASKS_QUEUE,
+    broker_connection_retry_on_startup=True,
 )
 
-# Redis client configuration
-redis_client = redis.Redis.from_url(
-    settings.UPSTASH_REDIS_URL,
-    decode_responses=True
-)
+@worker_ready.connect
+def on_worker_ready(sender, **kwargs):
+    try:
+        init_connection_pool()
+        print("✅ Database connection pool initialized")
+    except Exception as e:
+        print(f"❌ Failed to initialize database connection pool: {e}")
+        raise
+
 
 @app.task(name='worker.process_job_task')
 def process_job_task(task_data):
@@ -37,11 +47,4 @@ def process_job_task(task_data):
     print(f"Processing job task: {task_data}")
     return f"Completed: {task_data}"
 
-def check_redis_queue():
-    """Check Redis queue and process tasks"""
-    while True:
-        task_data = redis_client.blpop('task_queue', timeout=5)
-        if task_data:
-            task_json = task_data[1]
-            task = json.loads(task_json)
-            process_job_task.delay(task['data'])
+

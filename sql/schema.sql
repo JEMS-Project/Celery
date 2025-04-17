@@ -59,6 +59,8 @@ CREATE INDEX idx_raw_jobs_source ON raw_jobs(source_site);
 CREATE INDEX idx_processed_jobs_task ON processed_jobs(task_id);
 CREATE INDEX idx_processed_jobs_embedding ON processed_jobs(embedding_status);
 CREATE INDEX idx_task_logs_task ON task_logs(task_id);
+CREATE INDEX idx_processed_jobs_created ON processed_jobs(processed_at);
+CREATE INDEX idx_raw_jobs_created ON raw_jobs(created_at);
 
 -- Status update trigger
 CREATE OR REPLACE FUNCTION update_task_status()

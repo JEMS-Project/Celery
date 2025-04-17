@@ -3,26 +3,36 @@ from typing import List, Dict
 import requests
 from bs4 import BeautifulSoup
 from app.core.config import settings
+import pandas as pd
 
 class JobScraperService:
     def __init__(self):
         self.site_names = ["indeed", "linkedin", "glassdoor", "ziprecruiter"]
 
-    def scrape_jobs(self, search_term: str, location: str, results_wanted: int) -> List[Dict]:
-        all_jobs = []
-        for site in self.site_names:
-            try:
-                jobs = scrape_jobs(
-                    site_name=[site],
-                    search_term=search_term,
-                    location=location,
-                    results_wanted=min(results_wanted, settings.MAX_JOBS_PER_SITE),
-                    country_indeed="India" if site == "indeed" else None,
-                )
-                all_jobs.extend(jobs.to_dict('records'))
-            except Exception as e:
-                print(f"Failed to scrape {site}: {str(e)}")
-        return all_jobs
+    def scrape_jobs(self, parameters: Dict) -> List[Dict]:
+        """Scrape jobs based on parameters"""
+        try:
+            jobs = scrape_jobs(
+                site_name=parameters.get('site_name', ["linkedin", "glassdoor"]),
+                search_term=parameters['job_title'],
+                location=parameters['location'],
+                results_wanted=parameters.get('num_jobs', 20),
+                country_indeed=parameters.get('country', 'USA'),
+            )
+            
+            # Convert to list of dicts
+            jobs_list = jobs.to_dict('records')
+            
+            # Add metadata
+            for job in jobs_list:
+                job['external_id'] = str(job.get('id', ''))
+                job['source_site'] = job.get('site', '')
+            
+            return jobs_list
+            
+        except Exception as e:
+            print(f"Error scraping jobs: {e}")
+            raise
 
     def fetch_description(self, url: str, site: str) -> str:
         try:
