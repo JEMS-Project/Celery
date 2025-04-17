@@ -10,6 +10,9 @@ result = process_task.delay(task_data)
 
 from celery import Celery
 from app.core.config import settings
+from celery.signals import worker_ready
+import json
+from pprint import pprint
 
 app = Celery('celery_client')
 
@@ -32,13 +35,27 @@ app.conf.update(
     broker_connection_retry_on_startup=True,
 )
 
+@worker_ready.connect
+def on_worker_ready(sender, **kwargs):
+    print("Starting Celery worker...")
+    print("Broker URL:", settings.celery_broker_url)
+    print("Result Backend URL:", settings.celery_result_backend_url)
+
 @app.task(bind=True, name='celery_client.process_task')
 def process_task(self, task_data):
     """Task processing function with status updates"""
     self.update_state(state='PROCESSING')
-    print(f"Processing task: {task_data}")
+    #explain above statement 
+    #print task data in json format nicely in terminal beautify
+
+    print("Task data received:")
+    print(json.dumps(task_data, indent=4))
+    # print(f"Processing task: {task_data}")
+    # print("Complete task data:", task_data)
+    self.update_state(state='COMPLETED')
+
+    print("Task processing completed.")
     return {"status": "completed", "data": task_data}
 
 if __name__ == "__main__":
-    print(settings.celery_result_backend_url)
     app.start()
