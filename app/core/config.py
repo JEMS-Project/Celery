@@ -13,9 +13,9 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     
     # Redis Configuration
-    UPSTASH_REDIS_URL: str = os.getenv("UPSTASH_REDIS_URL")
+    UPSTASH_REDIS_HOST: str = os.getenv("UPSTASH_REDIS_HOST")
     UPSTASH_REDIS_PORT: int = int(os.getenv("UPSTASH_REDIS_PORT", "6379"))
-    UPSTASH_REDIS_TOKEN: str = os.getenv("UPSTASH_REDIS_TOKEN")
+    UPSTASH_REDIS_PASSWORD: str = os.getenv("UPSTASH_REDIS_PASSWORD")
     REDIS_TASKS_QUEUE: str = os.getenv("CELERY_TASK_QUEUE", "celery")
     REDIS_USE_SSL: bool = True
     
@@ -48,9 +48,9 @@ class Settings(BaseSettings):
         super().__init__(**kwargs)
         # Use Redis URL for Celery if not explicitly set
         if not self.CELERY_BROKER_URL:
-            self.CELERY_BROKER_URL = self.UPSTASH_REDIS_URL
+            self.CELERY_BROKER_URL = self.UPSTASH_REDIS_HOST
         if not self.CELERY_RESULT_BACKEND:
-            self.CELERY_RESULT_BACKEND = self.UPSTASH_REDIS_URL
+            self.CELERY_RESULT_BACKEND = self.UPSTASH_REDIS_HOST
 
     class Config:
         env_file = ".env"
@@ -59,23 +59,28 @@ class Settings(BaseSettings):
     @property
     def redis_config(self) -> dict:
         """Return Redis configuration as a dictionary"""
-        # Remove https:// and use clean hostname
-        host = self.UPSTASH_REDIS_URL.replace('https://', '')
         return {
-            "host": host,
-            "password": self.UPSTASH_REDIS_TOKEN,
+            "host": self.UPSTASH_REDIS_HOST,
+            "password": self.UPSTASH_REDIS_PASSWORD,
             "port": self.UPSTASH_REDIS_PORT,
             "ssl": self.REDIS_USE_SSL,
+            "ssl_cert_reqs": None,
             "decode_responses": True
         }
 
     @property
     def celery_broker_url(self) -> str:
-        """Return Redis URL formatted for Celery broker/backend"""
-        # Remove https:// and use clean hostname
-        host = self.UPSTASH_REDIS_URL.replace('https://', '')
-        # Format for Celery with SSL: rediss://:<password>@<host>:<port>
-        return f"rediss://:{self.UPSTASH_REDIS_TOKEN}@{host}"
+        """Return Redis URL formatted for Celery broker"""
+        host = self.UPSTASH_REDIS_HOST.replace('https://', '').strip('/')
+        return f"rediss://:{self.UPSTASH_REDIS_PASSWORD}@{host}:{self.UPSTASH_REDIS_PORT}/0?ssl_cert_reqs=CERT_NONE"
+
+    @property
+    def celery_result_backend_url(self) -> str:
+        """Return Redis URL formatted for Celery result backend"""
+        # Use same redis as the CELERY_RESULT_BACKEND 
+        host = self.UPSTASH_REDIS_HOST.replace('https://', '').strip('/')
+        print(f"rediss://:{self.UPSTASH_REDIS_PASSWORD}@{host}:{self.UPSTASH_REDIS_PORT}/0?ssl_cert_reqs=CERT_REQUIRED")
+        return f"rediss://:{self.UPSTASH_REDIS_PASSWORD}@{host}:{self.UPSTASH_REDIS_PORT}/0?ssl_cert_reqs=CERT_REQUIRED"
 
     @property
     def database_config(self) -> dict:
@@ -106,8 +111,8 @@ except Exception as e:
 def verify_environment():
     """Verify all required environment variables are set correctly"""
     required_vars = [
-        ("UPSTASH_REDIS_URL", settings.UPSTASH_REDIS_URL),
-        ("UPSTASH_REDIS_TOKEN", settings.UPSTASH_REDIS_TOKEN),
+        ("UPSTASH_REDIS_HOST", settings.UPSTASH_REDIS_HOST),
+        ("UPSTASH_REDIS_PASSWORD", settings.UPSTASH_REDIS_PASSWORD),
         ("DATABASE_URL", settings.DATABASE_URL),
         ("PINECONE_API_KEY", settings.PINECONE_API_KEY),
     ]
