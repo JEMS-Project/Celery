@@ -12,7 +12,7 @@ class JobScraperService:
     def scrape_jobs(self, parameters: Dict) -> List[Dict]:
         """Scrape jobs based on parameters"""
         try:
-            jobs = scrape_jobs(
+            df_jobs = scrape_jobs(
                 site_name=parameters.get('site_name', ["linkedin", "glassdoor"]),
                 search_term=parameters['job_title'],
                 location=parameters['location'],
@@ -20,13 +20,25 @@ class JobScraperService:
                 country_indeed=parameters.get('country', 'USA'),
             )
             
-            # Convert to list of dicts
-            jobs_list = jobs.to_dict('records')
-            
-            # Add metadata
-            for job in jobs_list:
-                job['external_id'] = str(job.get('id', ''))
-                job['source_site'] = job.get('site', '')
+            # Convert DataFrame to list of dicts and normalize the data
+            jobs_list = []
+            for _, row in df_jobs.iterrows():
+                job = {
+                    'external_id': str(row.get('id', '')),
+                    'title': row.get('title', ''),
+                    'company': row.get('company', ''),
+                    'location': row.get('location', ''),
+                    'description': row.get('description', ''),
+                    'job_url': row.get('job_url', ''),
+                    'job_type': row.get('job_type', ''),
+                    'salary_interval': row.get('interval', ''),
+                    'salary_min': row.get('min_amount'),
+                    'salary_max': row.get('max_amount'),
+                    'salary_currency': row.get('currency', 'USD'),
+                    'source_site': row.get('site', ''),
+                    'raw_data': row.to_dict()
+                }
+                jobs_list.append(job)
             
             return jobs_list
             

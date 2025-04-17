@@ -20,6 +20,16 @@ CREATE TABLE raw_jobs (
     external_id VARCHAR(255),
     raw_data JSONB NOT NULL,  -- Store complete raw job data
     source_site VARCHAR(50),  -- indeed, linkedin, etc.
+    title VARCHAR(255),
+    company VARCHAR(255),
+    location VARCHAR(255),
+    job_url VARCHAR(512),
+    job_type VARCHAR(100),
+    salary_interval VARCHAR(20),
+    salary_min DECIMAL(12,2),
+    salary_max DECIMAL(12,2),
+    salary_currency VARCHAR(3),
+    description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -32,11 +42,12 @@ CREATE TABLE processed_jobs (
     company VARCHAR(255) NOT NULL,
     location VARCHAR(255),
     description TEXT,
-    url VARCHAR(512),
+    job_url VARCHAR(512),
+    job_type VARCHAR(100),
+    salary_interval VARCHAR(20),
     salary_min DECIMAL(12,2),
     salary_max DECIMAL(12,2),
     salary_currency VARCHAR(3),
-    job_type VARCHAR(50),
     pinecone_id VARCHAR(255),
     embedding_status VARCHAR(50) DEFAULT 'PENDING',
     processed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

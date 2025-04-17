@@ -1,7 +1,6 @@
 celery==5.4.0
 redis==5.0.3
-sqlalchemy==2.0.29
-sqlalchemy-libsql==0.1.2
+psycopg2-binary==2.9.9
 python-jobspy==1.1.80
 torch==2.2.2
 sentence-transformers==2.6.1

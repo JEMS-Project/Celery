@@ -1,18 +1,35 @@
-from sqlalchemy import String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from dataclasses import dataclass
+from typing import Optional, Dict
 
-class Base(DeclarativeBase):
-    pass
+@dataclass
+class RawJob:
+    id: int
+    task_id: str
+    external_id: str
+    raw_data: Dict
+    source_site: str
+    title: str
+    company: str
+    location: Optional[str] = None
+    job_url: Optional[str] = None
+    job_type: Optional[str] = None
+    salary_interval: Optional[str] = None
+    salary_min: Optional[float] = None
+    salary_max: Optional[float] = None
+    salary_currency: Optional[str] = None
+    description: Optional[str] = None
 
-class Job(Base):
-    __tablename__ = "jobs"
-    
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    title: Mapped[str] = mapped_column(String, nullable=True)
-    company: Mapped[str] = mapped_column(String, nullable=True)
-    location: Mapped[str] = mapped_column(String, nullable=True)
-    description: Mapped[str] = mapped_column(String, nullable=True)
-    url: Mapped[str] = mapped_column(String, nullable=True)
-    
-    def __repr__(self):
-        return f"Job(id={self.id!r}, title={self.title!r}, company={self.company!r})"
+@dataclass
+class ProcessedJob:
+    id: int
+    raw_job_id: int
+    task_id: str
+    title: str
+    company: str
+    location: Optional[str] = None
+    description: Optional[str] = None
+    url: Optional[str] = None
+    salary_min: Optional[float] = None
+    salary_max: Optional[float] = None
+    salary_currency: Optional[str] = None
+    job_type: Optional[str] = None
