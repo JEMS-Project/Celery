@@ -8,39 +8,32 @@ from pathlib import Path
 load_dotenv()
 
 class Settings(BaseSettings):
-    # Project info
     PROJECT_NAME: str = "Job Embedding & Matching System"
     VERSION: str = "1.0.0"
     
-    # Redis Configuration
     UPSTASH_REDIS_HOST: str = os.getenv("UPSTASH_REDIS_HOST")
     UPSTASH_REDIS_PORT: int = int(os.getenv("UPSTASH_REDIS_PORT", "6379"))
     UPSTASH_REDIS_PASSWORD: str = os.getenv("UPSTASH_REDIS_PASSWORD")
     REDIS_TASKS_QUEUE: str = os.getenv("CELERY_TASK_QUEUE", "celery")
     REDIS_USE_SSL: bool = True
     
-    # Database Configuration
     DATABASE_URL: str = os.getenv("DATABASE_URL")
     DATABASE_MIN_CONNECTIONS: int = int(os.getenv("DATABASE_MIN_CONNECTIONS", "1"))
     DATABASE_MAX_CONNECTIONS: int = int(os.getenv("DATABASE_MAX_CONNECTIONS", "10"))
     
-    # Pinecone Configuration
     PINECONE_API_KEY: str = os.getenv("PINECONE_API_KEY")
     PINECONE_INDEX_NAME: str = os.getenv("PINECONE_INDEX_NAME", "job-embeddings")
     PINECONE_ENVIRONMENT: str = os.getenv("PINECONE_ENVIRONMENT", "gcp-starter")
     
-    # Celery Configuration
     CELERY_BROKER_URL: Optional[str] = os.getenv("CELERY_BROKER_URL")
     CELERY_RESULT_BACKEND: Optional[str] = os.getenv("CELERY_RESULT_BACKEND")
     CELERY_TASK_TRACK_STARTED: bool = True
     CELERY_TASK_TIME_LIMIT: int = int(os.getenv("CELERY_TASK_TIME_LIMIT", "1800"))  # 30 minutes
     
-    # Scraping Configuration
     MAX_JOBS_PER_SITE: int = int(os.getenv("MAX_JOBS_PER_SITE", "20"))
     SCRAPING_TIMEOUT: int = int(os.getenv("SCRAPING_TIMEOUT", "30"))
     USER_AGENT: str = os.getenv("USER_AGENT", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
     
-    # Model Configuration
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
     EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "384"))
     
@@ -67,20 +60,15 @@ class Settings(BaseSettings):
             "ssl_cert_reqs": None,
             "decode_responses": True
         }
-
     @property
     def celery_broker_url(self) -> str:
         """Return Redis URL formatted for Celery broker"""
-        host = self.UPSTASH_REDIS_HOST.replace('https://', '').strip('/')
-        return f"rediss://:{self.UPSTASH_REDIS_PASSWORD}@{host}:{self.UPSTASH_REDIS_PORT}/0?ssl_cert_reqs=CERT_NONE"
+        return f"rediss://:{self.UPSTASH_REDIS_PASSWORD}@{self.UPSTASH_REDIS_HOST}:{self.UPSTASH_REDIS_PORT}/0?ssl_cert_reqs=CERT_NONE"
 
     @property
     def celery_result_backend_url(self) -> str:
-        """Return Redis URL formatted for Celery result backend"""
-        # Use same redis as the CELERY_RESULT_BACKEND 
-        host = self.UPSTASH_REDIS_HOST.replace('https://', '').strip('/')
-        print(f"rediss://:{self.UPSTASH_REDIS_PASSWORD}@{host}:{self.UPSTASH_REDIS_PORT}/0?ssl_cert_reqs=CERT_REQUIRED")
-        return f"rediss://:{self.UPSTASH_REDIS_PASSWORD}@{host}:{self.UPSTASH_REDIS_PORT}/0?ssl_cert_reqs=CERT_REQUIRED"
+        """Return Redis URL formatted for Celery result backend, we are using the same redis as backend"""
+        return f"rediss://:{self.UPSTASH_REDIS_PASSWORD}@{self.UPSTASH_REDIS_HOST}:{self.UPSTASH_REDIS_PORT}/0?ssl_cert_reqs=CERT_REQUIRED"
 
     @property
     def database_config(self) -> dict:
@@ -100,11 +88,10 @@ def get_settings() -> Settings:
     """
     return Settings()
 
-# Create settings instance and validate on import
 try:
     settings = get_settings()
 except Exception as e:
-    print("Error loading configuration:")
+    print("Error loading configuration in config.py:")
     print(e)
     raise SystemExit(1)
 
@@ -113,8 +100,10 @@ def verify_environment():
     required_vars = [
         ("UPSTASH_REDIS_HOST", settings.UPSTASH_REDIS_HOST),
         ("UPSTASH_REDIS_PASSWORD", settings.UPSTASH_REDIS_PASSWORD),
+        ("UPSTASH_REDIS_PORT", settings.UPSTASH_REDIS_PORT),
         ("DATABASE_URL", settings.DATABASE_URL),
         ("PINECONE_API_KEY", settings.PINECONE_API_KEY),
+        ("PINECONE_INDEX_NAME", settings.PINECONE_INDEX_NAME)
     ]
     
     missing = []
