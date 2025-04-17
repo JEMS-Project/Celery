@@ -2,6 +2,16 @@ from dataclasses import dataclass
 from typing import Optional, Dict
 
 @dataclass
+class Job:
+    """Base Job model for backward compatibility"""
+    id: int
+    title: str
+    company: str
+    location: Optional[str] = None
+    description: Optional[str] = None
+    url: Optional[str] = None
+
+@dataclass
 class RawJob:
     id: int
     task_id: str

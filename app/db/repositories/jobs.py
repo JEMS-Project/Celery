@@ -6,12 +6,26 @@ class JobRepository:
     def __init__(self, db_conn):
         self.conn = db_conn
 
-    def create_job(self, job_data: Dict) -> Job:
-        db_job = Job(**job_data)
-        self.db.add(db_job)
-        self.db.commit()
-        self.db.refresh(db_job)
-        return db_job
+    async def create_job(self, job_data: Dict) -> Job:
+        """Create a basic job entry"""
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute("""
+                INSERT INTO processed_jobs (title, company, location, description, url)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            """, (
+                job_data['title'],
+                job_data['company'],
+                job_data.get('location'),
+                job_data.get('description'),
+                job_data.get('url')
+            ))
+            job_id = cursor.fetchone()[0]
+            self.conn.commit()
+            return Job(id=job_id, **job_data)
+        finally:
+            cursor.close()
 
     def get_jobs_by_ids(self, job_ids: List[str]) -> List[Dict]:
         """Get jobs by their IDs using raw SQL"""

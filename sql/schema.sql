@@ -16,12 +16,12 @@ CREATE TABLE celery_tasks (
 -- Raw scraped jobs table (before processing)
 CREATE TABLE raw_jobs (
     id SERIAL PRIMARY KEY,
-    task_id INTEGER REFERENCES celery_tasks(id),
+    task_id VARCHAR(255) NOT NULL,  -- Changed to match task_id from celery_tasks
     external_id VARCHAR(255),
     raw_data JSONB NOT NULL,  -- Store complete raw job data
     source_site VARCHAR(50),  -- indeed, linkedin, etc.
-    title VARCHAR(255),
-    company VARCHAR(255),
+    title VARCHAR(255) NOT NULL,
+    company VARCHAR(255) NOT NULL,
     location VARCHAR(255),
     job_url VARCHAR(512),
     job_type VARCHAR(100),
@@ -30,27 +30,28 @@ CREATE TABLE raw_jobs (
     salary_max DECIMAL(12,2),
     salary_currency VARCHAR(3),
     description TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES celery_tasks(task_id)  -- Changed to reference task_id
 );
 
 -- Processed jobs table (after cleaning/normalization)
 CREATE TABLE processed_jobs (
     id SERIAL PRIMARY KEY,
     raw_job_id INTEGER REFERENCES raw_jobs(id),
-    task_id INTEGER REFERENCES celery_tasks(id),
+    task_id VARCHAR(255) NOT NULL,  -- Changed to match task_id from celery_tasks
     title VARCHAR(255) NOT NULL,
     company VARCHAR(255) NOT NULL,
     location VARCHAR(255),
     description TEXT,
-    job_url VARCHAR(512),
+    url VARCHAR(512),  -- Changed from job_url to url to match ProcessedJob model
     job_type VARCHAR(100),
-    salary_interval VARCHAR(20),
     salary_min DECIMAL(12,2),
     salary_max DECIMAL(12,2),
     salary_currency VARCHAR(3),
     pinecone_id VARCHAR(255),
     embedding_status VARCHAR(50) DEFAULT 'PENDING',
-    processed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    processed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES celery_tasks(task_id)  -- Changed to reference task_id
 );
 
 -- Task processing logs
