@@ -11,6 +11,7 @@ result = process_task.delay(task_data)
 from celery import Celery
 from app.core.config import settings
 from celery.signals import worker_ready
+from app.db.connection import init_connection_pool
 import json
 from pprint import pprint
 
@@ -38,8 +39,14 @@ app.conf.update(
 @worker_ready.connect
 def on_worker_ready(sender, **kwargs):
     print("Starting Celery worker...")
-    print("Broker URL:", settings.celery_broker_url)
-    print("Result Backend URL:", settings.celery_result_backend_url)
+    # print("Broker URL:", settings.celery_broker_url)
+    # print("Result Backend URL:", settings.celery_result_backend_url)
+    try:
+        init_connection_pool()
+        print("✅ Database connection pool initialized")
+    except Exception as e:
+        print(f"❌ Failed to initialize database connection pool: {e}")
+        raise
 
 @app.task(bind=True, name='celery_client.process_task')
 def process_task(self, task_data):

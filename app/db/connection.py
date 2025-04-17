@@ -8,18 +8,15 @@ connection_pool = None
 
 def init_connection_pool():
     global connection_pool
-    try:
-        connection_pool = pool.SimpleConnectionPool(
-            **settings.database_config
-        )
-        print("✅Database pool initialized successfully✅")
-    except Exception as e:
-        print(f"Error creating connection pool: {e}")
-        raise
-# Create connection pool
-connection_pool = pool.SimpleConnectionPool(
-    **settings.database_config
-)
+    if connection_pool is None:
+        try:
+            connection_pool = pool.SimpleConnectionPool(
+                **settings.database_config
+            )
+            print("✅Database pool initialized successfully✅")
+        except Exception as e:
+            print(f"Error creating connection pool: {e}")
+            raise
 
 @contextlib.contextmanager
 def get_db_connection():
