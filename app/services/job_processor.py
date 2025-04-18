@@ -9,6 +9,13 @@ class JobProcessingService:
         self.logger = JobLogger("JobProcessor")
         self.job_repository = job_repository
         self.embedding_service = embedding_service
+
+    def _clean_metadata(self, metadata: Dict) -> Dict:
+        """Clean metadata to ensure valid values for Pinecone"""
+        return {
+            k: str(v) if v is not None else ""
+            for k, v in metadata.items()
+        }
     
     @log_operation(JobLogger("JobProcessor"))
     async def process_jobs(self, raw_jobs: List[Dict], task_id: str) -> Dict:
@@ -54,14 +61,19 @@ class JobProcessingService:
                     
                     job_id, embedding = self.embedding_service.generate_job_embedding(job)
                     if self.embedding_service.is_valid_embedding(embedding):
+                        # Clean metadata before adding to embeddings
+                        metadata = self._clean_metadata({
+                            'title': job.title,
+                            'company': job.company,
+                            'location': job.location or "",
+                            'job_type': job.job_type or "",
+                            'url': job.url or ""
+                        })
+                        
                         embeddings.append({
-                            'id': job_id,
+                            'id': str(job_id),  # Ensure id is string
                             'values': embedding,
-                            'metadata': {
-                                'title': job.title,
-                                'company': job.company,
-                                'location': job.location
-                            }
+                            'metadata': metadata
                         })
                         successful_embeddings += 1
                     else:

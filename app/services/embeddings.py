@@ -72,6 +72,60 @@ class EmbeddingService:
     def is_valid_embedding(self, embedding: List[float]) -> bool:
         return all(np.isfinite(x) for x in embedding)
 
-    def upsert_embeddings(self, vectors):
-        if vectors:
-            self.index.upsert(vectors=vectors)
+    def _validate_vector(self, vector: Dict) -> bool:
+        """Validate vector data before upserting"""
+        try:
+            # Check required fields
+            if not all(k in vector for k in ['id', 'values', 'metadata']):
+                return False
+            
+            # Validate id is string
+            if not isinstance(vector['id'], str):
+                return False
+            
+            # Validate values is list of floats
+            if not isinstance(vector['values'], list) or not all(isinstance(x, float) for x in vector['values']):
+                return False
+            
+            # Validate metadata values are strings
+            if not all(isinstance(v, str) for v in vector['metadata'].values()):
+                return False
+                
+            return True
+        except Exception:
+            return False
+
+    @log_operation(JobLogger("EmbeddingService"))
+    def upsert_embeddings(self, vectors: List[Dict]) -> None:
+        """Upsert vectors to Pinecone with validation"""
+        if not vectors:
+            return
+
+        try:
+            # Filter out invalid vectors
+            valid_vectors = [v for v in vectors if self._validate_vector(v)]
+            
+            if not valid_vectors:
+                self.logger.log_operation(
+                    "No valid vectors to upsert",
+                    {"total": len(vectors), "valid": 0}
+                )
+                return
+                
+            self.logger.log_operation(
+                "Upserting vectors",
+                {"total": len(vectors), "valid": len(valid_vectors)}
+            )
+            
+            # Batch upserts in chunks of 100
+            batch_size = 100
+            for i in range(0, len(valid_vectors), batch_size):
+                batch = valid_vectors[i:i + batch_size]
+                self.index.upsert(vectors=batch)
+                
+        except Exception as e:
+            self.logger.log_error(e, {
+                "operation": "upsert_embeddings",
+                "vector_count": len(vectors)
+            })
+            raise
