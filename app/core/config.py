@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     DATABASE_MAX_CONNECTIONS: int = int(os.getenv("DATABASE_MAX_CONNECTIONS", "10"))
     
     PINECONE_API_KEY: str = os.getenv("PINECONE_API_KEY")
-    PINECONE_INDEX_NAME: str = os.getenv("PINECONE_INDEX_NAME", "job-embeddings")
-    PINECONE_ENVIRONMENT: str = os.getenv("PINECONE_ENVIRONMENT", "gcp-starter")
+    PINECONE_INDEX_NAME: str = os.getenv("PINECONE_INDEX_NAME")
+    PINECONE_ENVIRONMENT: str = os.getenv("PINECONE_ENVIRONMENT")
     
     CELERY_BROKER_URL: Optional[str] = os.getenv("CELERY_BROKER_URL")
     CELERY_RESULT_BACKEND: Optional[str] = os.getenv("CELERY_RESULT_BACKEND")

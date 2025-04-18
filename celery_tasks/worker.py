@@ -40,11 +40,4 @@ def on_worker_ready(sender, **kwargs):
         raise
 
 
-@app.task(name='worker.process_job_task')
-def process_job_task(task_data):
-    """Process job scraping task"""
-    # To be implemented with actual job scraping logic
-    print(f"Processing job task: {task_data}")
-    return f"Completed: {task_data}"
-
 

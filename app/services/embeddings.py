@@ -7,8 +7,8 @@ from app.core.config import settings
 
 class EmbeddingService:
     def __init__(self):
-        self.pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-        self.index_name = os.getenv("PINECONE_INDEX_NAME", "job-embeddings")
+        self.pc = Pinecone(api_key=settings.PINECONE_API_KEY)
+        self.index_name = settings.PINECONE_INDEX_NAME
         self.model = SentenceTransformer(settings.EMBEDDING_MODEL)
         self._init_index()
 
