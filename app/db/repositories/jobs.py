@@ -1,6 +1,15 @@
 from typing import List, Dict
 import json
+from datetime import date, datetime
 from app.db.models import Job, RawJob, ProcessedJob
+from psycopg2.extras import execute_values
+
+class JSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder to handle dates"""
+    def default(self, obj):
+        if isinstance(obj, (date, datetime)):
+            return obj.isoformat()
+        return super().default(obj)
 
 class JobRepository:
     def __init__(self, db_conn):
@@ -67,28 +76,58 @@ class JobRepository:
             values = [(
                 task_id,
                 job.get('external_id'),
-                json.dumps(job),
-                job.get('source_site')
+                json.dumps(job.get('raw_data', job), cls=JSONEncoder),
+                job.get('source_site'),
+                job.get('title'),
+                job.get('company'),
+                job.get('location'),
+                job.get('job_url'),
+                job.get('job_type'),
+                job.get('salary_interval'),
+                job.get('salary_min'),
+                job.get('salary_max'),
+                job.get('salary_currency'),
+                job.get('description')
             ) for job in jobs_data]
             
-            # Bulk insert using executemany
-            cursor.executemany("""
-                INSERT INTO raw_jobs (task_id, external_id, raw_data, source_site)
-                VALUES (%s, %s, %s, %s)
+            # Use execute_values with RETURNING clause
+            insert_query = """
+                INSERT INTO raw_jobs (
+                    task_id, external_id, raw_data, source_site, 
+                    title, company, location, job_url, job_type,
+                    salary_interval, salary_min, salary_max,
+                    salary_currency, description
+                )
+                VALUES %s
                 RETURNING id
-            """, values)
+            """
             
-            # Get the inserted IDs
-            inserted_ids = cursor.fetchall()
+            # Execute and get returned IDs
+            ids = execute_values(
+                cursor,
+                insert_query,
+                values,
+                fetch=True
+            )
             
-            # Create RawJob objects
-            for (id,), job_data in zip(inserted_ids, jobs_data):
+            # Create RawJob objects with returned IDs
+            for (id,), job_data in zip(ids, jobs_data):
                 raw_jobs.append(RawJob(
                     id=id,
                     task_id=task_id,
                     external_id=job_data.get('external_id'),
-                    raw_data=job_data,
-                    source_site=job_data.get('source_site')
+                    raw_data=job_data.get('raw_data', job_data),
+                    source_site=job_data.get('source_site'),
+                    title=job_data.get('title'),
+                    company=job_data.get('company'),
+                    location=job_data.get('location'),
+                    job_url=job_data.get('job_url'),
+                    job_type=job_data.get('job_type'),
+                    salary_interval=job_data.get('salary_interval'),
+                    salary_min=job_data.get('salary_min'),
+                    salary_max=job_data.get('salary_max'),
+                    salary_currency=job_data.get('salary_currency'),
+                    description=job_data.get('description')
                 ))
             
             self.conn.commit()
@@ -115,26 +154,34 @@ class JobRepository:
                     data.get('company'),
                     data.get('location'),
                     data.get('description'),
-                    data.get('url'),
+                    data.get('url') or data.get('job_url'),  # Fallback to job_url if url not present
                     data.get('salary_min'),
                     data.get('salary_max'),
                     data.get('salary_currency'),
                     data.get('job_type')
                 ))
             
-            cursor.executemany("""
+            # Use execute_values with RETURNING clause
+            insert_query = """
                 INSERT INTO processed_jobs (
                     raw_job_id, task_id, title, company, location, 
                     description, url, salary_min, salary_max, 
                     salary_currency, job_type
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES %s
                 RETURNING id
-            """, values)
+            """
             
-            inserted_ids = cursor.fetchall()
+            # Execute and get returned IDs
+            ids = execute_values(
+                cursor,
+                insert_query,
+                values,
+                fetch=True
+            )
             
-            for (id,), (raw_job, value) in zip(inserted_ids, zip(raw_jobs, values)):
+            # Create ProcessedJob objects with returned IDs
+            for (id,), (raw_job, value) in zip(ids, zip(raw_jobs, values)):
                 processed_jobs.append(ProcessedJob(
                     id=id,
                     raw_job_id=value[0],

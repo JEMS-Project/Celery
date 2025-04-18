@@ -4,7 +4,7 @@ CREATE TABLE celery_tasks (
     task_id VARCHAR(255) UNIQUE NOT NULL,  -- Celery task UUID
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     task_name VARCHAR(255) NOT NULL,  -- e.g., 'scrape_jobs'
-    task_args JSONB,  -- Store task arguments
+    task_args JSONB NOT NULL DEFAULT '{}'::jsonb,  -- Store task arguments as JSONB
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     started_at TIMESTAMP WITH TIME ZONE,
     completed_at TIMESTAMP WITH TIME ZONE,
